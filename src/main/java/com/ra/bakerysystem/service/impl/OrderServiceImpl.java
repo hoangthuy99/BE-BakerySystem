@@ -1,18 +1,22 @@
 package com.ra.bakerysystem.service.impl;
 
+import com.ra.bakerysystem.common.ProductType;
 import com.ra.bakerysystem.common.OrderType;
-import com.ra.bakerysystem.common.PaymentMethod;
+
+import com.ra.bakerysystem.model.DTO.OrderItemRequestDTO;
 import com.ra.bakerysystem.model.DTO.OrderRequestDTO;
-import com.ra.bakerysystem.model.DTO.OrderResponseDTO;
-import com.ra.bakerysystem.model.entity.Order;
-import com.ra.bakerysystem.model.entity.OrderItem;
-import com.ra.bakerysystem.model.entity.Product;
+import com.ra.bakerysystem.model.entity.*;
+import com.ra.bakerysystem.repository.InventoryRepository;
 import com.ra.bakerysystem.repository.OrderRepository;
-import com.ra.bakerysystem.service.InventoryService;
+import com.ra.bakerysystem.repository.ProductRepository;
 import com.ra.bakerysystem.service.OrderService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,68 +25,107 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final InventoryService inventoryService;
+    private final ProductRepository productRepository;
+    private final InventoryRepository inventoryRepository;
 
     @Override
-    public OrderResponseDTO createOrder(OrderRequestDTO request) {
+    @Transactional
+    public Order createOrder(OrderRequestDTO dto) {
 
-        // 1. Tạo Order
-        Order order = new Order();
-        order.setOrderType(OrderType.valueOf(request.getOrderType().toUpperCase()));
-        order.setPaymentMethod(PaymentMethod.cash);
+        LocalDateTime now = LocalDateTime.now();
 
-        // 2. Tạo OrderItem
-        List<OrderItem> items = new ArrayList<>();
-        int totalAmount = 0;
-
-        for (var itemDTO : request.getItems()) {
-
-            // Trừ kho
-            inventoryService.deductStock(
-                    itemDTO.getProductId(),
-                    itemDTO.getQuantity()
-            );
-
-            OrderItem item = new OrderItem();
-            item.setOrder(order);
-            item.setQuantity(itemDTO.getQuantity());
-            item.setUnitPrice(itemDTO.getUnitPrice());
-
-            // Chỉ set Product với ID
-            Product product = new Product();
-            product.setId(itemDTO.getProductId());
-            item.setProduct(product);
-
-            totalAmount += item.getQuantity() * item.getUnitPrice();
-            items.add(item);
+        // 1. Validate Eat-in
+        if (dto.getOrderType() == OrderType.EAT_IN
+                && now.toLocalTime().isAfter(LocalTime.of(20, 30))) {
+            throw new RuntimeException("Eat-in is not allowed after 20:30");
         }
 
-        // 3. Hoàn thiện Order
-        order.setItems(items);
+        // 2. Tạo Order entity
+
+        Order order = new Order();
+        order.setOrderType(dto.getOrderType());
+        order.setPaymentMethod(dto.getPaymentMethod());
+        order.setPaymentReceived(dto.getPaymentReceived());
+        order.setItems(new ArrayList<>());
+
+        int totalAmount = 0;
+
+        // 3. Xử lý từng item
+
+        for (OrderItemRequestDTO itemDTO : dto.getItems()) {
+
+            // 3.1 Lấy product
+            Product product = productRepository.findById(itemDTO.getProductId())
+                    .orElseThrow(() ->
+                            new RuntimeException("Product not found: " + itemDTO.getProductId())
+                    );
+
+            // 3.2 Check rượu trước 17h
+            if (Boolean.TRUE.equals(product.getAlcoholic())
+                    && now.toLocalTime().isBefore(LocalTime.of(17, 0))) {
+                throw new RuntimeException("Alcohol is not allowed before 17:00");
+            }
+
+            // 3.3 Check & trừ kho
+            if (product.getType() == ProductType.food
+                    || product.getType() == ProductType.merchandise) {
+
+                Inventory inventory = inventoryRepository.findById(product.getId())
+                        .orElseThrow(() ->
+                                new RuntimeException("Inventory not found for product: " + product.getId())
+                        );
+
+                if (inventory.getCurrentQuantity() < itemDTO.getQuantity()) {
+                    throw new RuntimeException(
+                            "Not enough stock for product: " + product.getName()
+                    );
+                }
+
+                inventory.setCurrentQuantity(
+                        inventory.getCurrentQuantity() - itemDTO.getQuantity()
+                );
+                inventoryRepository.save(inventory);
+            }
+
+            // 3.4 Snapshot OrderItem
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setName(product.getName());
+            item.setQuantity(itemDTO.getQuantity());
+            item.setUnitPrice(product.getPrice());
+
+            order.getItems().add(item);
+
+            totalAmount += product.getPrice() * itemDTO.getQuantity();
+        }
+
+        // 4. Tính tiền
         order.setTotalAmount(totalAmount);
+        order.setChangeAmount(dto.getPaymentReceived() - totalAmount);
 
-        int received = request.getPaymentReceived();
-        order.setPaymentReceived(received);
-        order.setChangeAmount(received - totalAmount);
+        // 5. Save
 
-        // 4. Lưu
-        Order savedOrder = orderRepository.save(order);
-
-        // 5. Convert sang ResponseDTO
-        return convertToResponseDTO(savedOrder);
+        return orderRepository.save(order);
     }
 
-    // Convert Entity => ResponseDTO
-    private OrderResponseDTO convertToResponseDTO(Order order) {
-        OrderResponseDTO dto = new OrderResponseDTO();
-        dto.setOrderId(order.getId());
-        dto.setOrderTime(order.getOrderTime());
-        dto.setOrderType(order.getOrderType().name());
-        dto.setTotalAmount(order.getTotalAmount());
-        dto.setPaymentMethod(order.getPaymentMethod().name());
-        dto.setPaymentReceived(order.getPaymentReceived());
-        dto.setChangeAmount(order.getChangeAmount());
+    @Override
+    public List<Order> getOrdersByDate(LocalDate date, OrderType type) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(23, 59, 59);
 
-        return dto;
+        if (type != null) {
+            return orderRepository.findByOrderTimeBetweenAndOrderType(
+                    start, end, type
+            );
+        }
+
+        return orderRepository.findByOrderTimeBetween(start, end);
+    }
+
+    @Override
+    public Order getOrderById(Long id) {
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
     }
 }

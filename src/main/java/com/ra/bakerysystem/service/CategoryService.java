@@ -6,10 +6,5 @@ import com.ra.bakerysystem.model.entity.Category;
 import java.util.List;
 
 public interface CategoryService {
-
-    Category createCategory(Category category);
-    List<Category> findAll();
-    Category findById(long id);
-
-
+    List<CategoryDTO> getAllCategories();
 }

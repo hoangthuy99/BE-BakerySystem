@@ -16,32 +16,18 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
     @Override
-    public List<ProductDTO> findAllActive() {
-        return productRepository.findByActiveTrue()
+    public List<ProductDTO> getProducts(Long categoryId, String search, Boolean isActive) {
+        return productRepository
+                .findProducts(categoryId, search, isActive)
                 .stream()
-                .map(this::convertToDTO)
+                .map(ProductDTO::new)
                 .toList();
     }
 
     @Override
-    public List<ProductDTO> findByCategory(Long categoryId) {
-        return productRepository.findByCategory_IdAndActiveTrue(categoryId)
-                .stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
-    // Convert Entity => DTO
-    private ProductDTO convertToDTO(Product product) {
-        ProductDTO dto = new ProductDTO();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setPrice(product.getPrice());
-        dto.setType(product.getType().name());
-        dto.setAlcoholic(product.getAlcoholic());
-        dto.setImageUrl(product.getImageUrl());
-
-
-        return dto;
+    public ProductDTO getProductById(Long id) {
+        return productRepository.findById(id)
+                .map(ProductDTO::new)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
     }
 }

@@ -4,7 +4,7 @@ import com.ra.bakerysystem.model.DTO.ProductDTO;
 import java.util.List;
 
 public interface ProductService {
-    List<ProductDTO> findAllActive();
-    List<ProductDTO> findByCategory(Long categoryId);
-}
 
+    List<ProductDTO> getProducts(Long categoryId, String search, Boolean isActive);
+    ProductDTO getProductById(Long id);
+}

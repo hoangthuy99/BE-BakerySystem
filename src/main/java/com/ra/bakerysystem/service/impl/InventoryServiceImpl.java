@@ -5,6 +5,7 @@ import com.ra.bakerysystem.model.entity.Inventory;
 import com.ra.bakerysystem.repository.InventoryRepository;
 import com.ra.bakerysystem.service.InventoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,40 +17,19 @@ public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
 
     @Override
-    public List<InventoryDTO> getAll() {
-        return inventoryRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .toList();
+    public List<Inventory> getAllInventory() {
+        return inventoryRepository.findAll();
     }
 
     @Override
-    public void deductStock(Long productId, int quantity) {
+    public Inventory adjustInventory(Long productId, Integer currentQuantity) {
 
         Inventory inventory = inventoryRepository.findById(productId)
-                .orElseThrow(() ->
-                        new RuntimeException("Inventory not found for product " + productId)
-                );
+                .orElseThrow(() -> new RuntimeException("Inventory not found for product_id=" + productId));
 
-        int remain = inventory.getCurrentQuantity() - quantity;
+        inventory.setCurrentQuantity(currentQuantity);
 
-        if (remain < 0) {
-            throw new RuntimeException("Not enough stock for product " + productId);
-        }
-
-        inventory.setCurrentQuantity(remain);
-        // lastUpdated sẽ tự cập nhật nhờ @PreUpdate
-        inventoryRepository.save(inventory);
+        return inventoryRepository.save(inventory);
     }
 
-    // Convert Entity => DTO
-    private InventoryDTO convertToDTO(Inventory inventory) {
-        InventoryDTO dto = new InventoryDTO();
-        dto.setProductId(inventory.getProductId());
-        dto.setCurrentQuantity(inventory.getCurrentQuantity());
-        dto.setMinThreshold(inventory.getMinThreshold());
-        dto.setLastUpdated(inventory.getLastUpdated());
-
-        return dto;
-    }
 }

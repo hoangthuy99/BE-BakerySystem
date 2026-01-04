@@ -1,6 +1,8 @@
 package com.ra.bakerysystem.model.DTO;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.ra.bakerysystem.common.OrderType;
+import com.ra.bakerysystem.common.PaymentMethod;
 import lombok.*;
 
 import java.util.List;
@@ -11,9 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OrderRequestDTO {
-
-    private String orderType;
+    private OrderType orderType;
+    private PaymentMethod paymentMethod;
     private Integer paymentReceived;
-    private List<OrderItemDTO> items;
+    private List<OrderItemRequestDTO> items;
 }
-

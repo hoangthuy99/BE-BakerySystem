@@ -1,5 +1,6 @@
 package com.ra.bakerysystem.controller;
 
+import com.ra.bakerysystem.model.DTO.CategoryDTO;
 import com.ra.bakerysystem.model.entity.Category;
 import com.ra.bakerysystem.service.CategoryService;
 import lombok.RequiredArgsConstructor;
@@ -7,28 +8,25 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
-@RequestMapping("/app/category")
+@RequestMapping("/api/v1/categories")
 @RequiredArgsConstructor
+@Tag(name = "Category API")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
-    // GET: lấy tất cả category
     @GetMapping
-    public List<Category> getAll() {
-        return categoryService.findAll();
-    }
-
-    // GET: lấy category theo id
-    @GetMapping("/{id}")
-    public Category getById(@PathVariable long id) {
-        return categoryService.findById(id);
-    }
-
-    // POST: tạo category
-    @PostMapping ("/add-category")
-    public Category addCategory(@RequestBody Category category) {
-        return categoryService.createCategory(category);
+    @Operation(summary = "Get all categories")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Success")
+    })
+    public List<CategoryDTO> getAllCategories() {
+        return categoryService.getAllCategories();
     }
 }
