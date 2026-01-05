@@ -67,8 +67,6 @@ public class OrderServiceImpl implements OrderService {
             }
 
             // 3.3 Check & trừ kho
-            if (product.getType() == ProductType.food
-                    || product.getType() == ProductType.merchandise) {
 
                 Inventory inventory = inventoryRepository.findById(product.getId())
                         .orElseThrow(() ->
@@ -85,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
                         inventory.getCurrentQuantity() - itemDTO.getQuantity()
                 );
                 inventoryRepository.save(inventory);
-            }
+
 
             // 3.4 Snapshot OrderItem
             OrderItem item = new OrderItem();

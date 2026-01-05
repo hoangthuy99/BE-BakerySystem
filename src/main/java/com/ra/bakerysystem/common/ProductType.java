@@ -4,5 +4,4 @@ public enum ProductType {
     food,
     drink,
     alcohol,
-    merchandise
 }

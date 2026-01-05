@@ -30,7 +30,7 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "product_type")
-    private ProductType type; // Đảm bảo Enum đã có: food, drink, alcohol, merchandise
+    private ProductType type; // Đảm bảo Enum đã có: food, drink, alcohol
 
     @Column(name = "is_alcoholic")
     @JsonProperty("is_alcoholic")

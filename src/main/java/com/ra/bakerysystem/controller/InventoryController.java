@@ -42,8 +42,7 @@ public class InventoryController {
     })
     public Inventory adjustInventory(
             @PathVariable Long productId,
-            @RequestParam(name = "currentQuantity", defaultValue = "0") Integer currentQuantity,
-            @RequestParam(name = "tram", defaultValue = "acsa") String tram
+            @RequestParam(name = "currentQuantity", defaultValue = "0") Integer currentQuantity
 //            @RequestBody Map<String, Integer> body
     ) {
 
