@@ -50,7 +50,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("end") LocalDateTime end
     );
 
-    // ✅ THÊM MỚI – Filter order theo type (EAT_IN / TAKE_AWAY)
+    // Filter order theo type (EAT_IN / TAKE_AWAY)
     List<Order> findByOrderTimeBetweenAndOrderType(
             LocalDateTime start,
             LocalDateTime end,
