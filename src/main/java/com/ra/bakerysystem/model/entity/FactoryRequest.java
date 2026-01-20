@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class FactoryRequest {
 
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
     private Long requestId;
 
@@ -32,10 +32,21 @@ public class FactoryRequest {
     @Column(name = "request_quantity", nullable = false)
     private Integer requestQuantity;
 
+    /*
+     * ========================= FIX =========================
+     * delivered_quantity:
+     *  - Số lượng đã giao thực tế
+     *  - NOT NULL trong DB
+     *  - Mặc định = 0 khi tạo request
+     * ======================================================
+     */
+    @Column(name = "delivered_quantity", nullable = false)
+    private Integer deliveredQuantity;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "eta_at", nullable = false) // eta = estimate time arrival
+    @Column(name = "eta_at", nullable = false)
     private LocalDateTime etaAt;
 
     @Column(columnDefinition = "TEXT")
@@ -45,4 +56,3 @@ public class FactoryRequest {
     @Column(nullable = false)
     private FactoryRequestStatus status;
 }
-

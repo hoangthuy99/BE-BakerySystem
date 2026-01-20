@@ -25,10 +25,11 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     private final FactoryRequestRepository factoryRequestRepository;
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
-    // PJ3: Thêm để tạo logic tính số lượng chỉ thị sản xuất
     private final OrderItemRepository orderItemRepository;
 
-
+    // =========================
+    // CREATE FACTORY REQUEST
+    // =========================
     @Override
     public FactoryRequest create(FactoryRequestDTO dto) {
 
@@ -37,11 +38,11 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
         int finalRequestQuantity;
 
-        // BÁNH → Auto tính
+        // BÁNH → auto tính
         if (Boolean.FALSE.equals(product.getAlcoholic())) {
             finalRequestQuantity = calculateAutoRequestQuantity(product.getId());
         }
-        // ĐỒ UỐNG / ALCOHOL → Không auto tính
+        // ĐỒ UỐNG / ALCOHOL → dùng số FE gửi
         else {
             finalRequestQuantity = dto.getRequestQuantity();
         }
@@ -50,6 +51,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
                 .productId(product.getId())
                 .productName(product.getName())
                 .requestQuantity(finalRequestQuantity)
+                .deliveredQuantity(0) // ✅ FIX: bắt buộc set mặc định
                 .etaAt(dto.getEtaAt())
                 .note(dto.getNote())
                 .status(FactoryRequestStatus.PENDING)
@@ -64,15 +66,30 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         return factoryRequestRepository.findAll();
     }
 
+    // =====================================================
+    // UPDATE FACTORY REQUEST STATUS
+    // =====================================================
     @Override
     public FactoryRequest updateStatus(Long requestId, FactoryRequestStatus status) {
 
         FactoryRequest request = factoryRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
-        // Logic đặc biệt: khi nhận bánh
-        if (status == FactoryRequestStatus.DELIVERED
-                && request.getStatus() != FactoryRequestStatus.DELIVERED) {
+        /*
+         * ========================= FIX BUG =========================
+         * LỖI CŨ:
+         *   - Chỉ cần status == DELIVERED là cộng kho
+         *   - Khi reload / sync data, method này bị gọi lại
+         *   - Dẫn tới inventory bị cộng lặp (+10 mỗi lần reload)
+         *
+         * SỬA:
+         *   - CHỈ cộng kho khi:
+         *       IN_PROGRESS  --->  DELIVERED
+         *   - Đảm bảo mỗi request chỉ cộng kho DUY NHẤT 1 LẦN
+         * ===========================================================
+         */
+        if (request.getStatus() == FactoryRequestStatus.PENDING
+                && status == FactoryRequestStatus.DELIVERED) {
 
             Inventory inventory = inventoryRepository.findById(request.getProductId())
                     .orElseThrow(() -> new RuntimeException("Inventory not found"));
@@ -88,15 +105,33 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         return factoryRequestRepository.save(request);
     }
 
+    // =====================================================
+    // API SUPPORT METHOD: FE gọi để lấy số lượng đề xuất
+    // =====================================================
+    @Override
+    public int getSuggestedQuantity(Long productId) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        // Đồ uống / alcohol → không auto
+        if (Boolean.TRUE.equals(product.getAlcoholic())) {
+            return 0; // FE tự nhập
+        }
+
+        return calculateAutoRequestQuantity(productId);
+    }
+
+    // =====================================================
+    // CORE LOGIC – DÙNG CHUNG (KHÔNG GỌI TRỰC TIẾP TỪ FE)
+    // =====================================================
     private int calculateAutoRequestQuantity(Long productId) {
 
-        System.out.println("[AUTO_ORDER] ===== START ===== productId=" + productId);
-
-        // 1. Tính khoảng thời gian hôm nay
-        LocalDateTime startOfToday = LocalDateTime.now().toLocalDate().atStartOfDay();
+        // 1. Khoảng thời gian hôm nay
+        LocalDateTime startOfToday = LocalDateTime.now()
+                .toLocalDate()
+                .atStartOfDay();
         LocalDateTime endOfToday = startOfToday.plusDays(1);
-
-        System.out.println("[AUTO_ORDER] startOfToday=" + startOfToday + ", endOfToday=" + endOfToday);
 
         // 2. Đã bán hôm nay
         int soldToday = orderItemRepository.getSoldInRange(
@@ -105,26 +140,19 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
                 endOfToday
         );
 
-        System.out.println("[AUTO_ORDER] soldToday=" + soldToday);
-
         // 3. Tổng số đã bán
         long totalSold = orderItemRepository.getTotalSold(productId);
-        System.out.println("[AUTO_ORDER] totalSold=" + totalSold);
 
         // 4. Ngày bán đầu & cuối
         LocalDateTime firstSold = orderItemRepository.getFirstSoldDate(productId);
         LocalDateTime lastSold = orderItemRepository.getLastSoldDate(productId);
 
-        System.out.println("[AUTO_ORDER] firstSold=" + firstSold + ", lastSold=" + lastSold);
-
-        // Nếu chưa từng bán → sản xuất tối thiểu
+        // Chưa từng bán
         if (firstSold == null || lastSold == null || totalSold == 0) {
-            System.out.println("[AUTO_ORDER] No sale history → return 10");
-            System.out.println("[AUTO_ORDER] ===== END =====");
             return 10;
         }
 
-        // 5. Số ngày bán (ít nhất là 1)
+        // 5. Số ngày bán
         long days = Math.max(
                 java.time.Duration.between(firstSold, lastSold).toDays() + 1,
                 1
@@ -132,16 +160,10 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
         double averagePerDay = (double) totalSold / days;
 
-        System.out.println("[AUTO_ORDER] days=" + days + ", averagePerDay=" + averagePerDay);
-
-        // 6. Công thức bạn yêu cầu
+        // 6. Công thức SX
         int suggested = (int) Math.ceil(averagePerDay - soldToday);
-        int result = Math.max(suggested, 10);
 
-        System.out.println("[AUTO_ORDER] suggested=" + suggested + ", finalResult=" + result);
-        System.out.println("[AUTO_ORDER] ===== END =====");
-
-        return result;
+        // đảm bảo luôn sản xuất tối thiểu 10
+        return Math.max(suggested, 10);
     }
-
 }

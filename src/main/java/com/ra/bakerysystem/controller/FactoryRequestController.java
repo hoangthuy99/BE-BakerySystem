@@ -7,11 +7,11 @@ import com.ra.bakerysystem.service.FactoryRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
@@ -22,40 +22,49 @@ public class FactoryRequestController {
 
     private final FactoryRequestService factoryRequestService;
 
-    // POST /factory-requests
+    // =========================
+    // CREATE
+    // =========================
     @PostMapping
     @Operation(summary = "Create factory request")
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Created"),
-            @ApiResponse(responseCode = "400", description = "Invalid request")
-    })
     public FactoryRequest create(
             @RequestBody FactoryRequestDTO dto
     ) {
         return factoryRequestService.create(dto);
     }
 
-    // GET /factory-requests
+    // =========================
+    // GET ALL
+    // =========================
     @GetMapping
     @Operation(summary = "Get all factory requests")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success")
-    })
     public List<FactoryRequest> getAll() {
         return factoryRequestService.getAll();
     }
 
-    // PATCH /factory-requests/{id}/status
+    // =========================
+    // UPDATE STATUS
+    // =========================
     @PatchMapping("/{id}/status")
     @Operation(summary = "Update factory request status")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success"),
-            @ApiResponse(responseCode = "404", description = "Request not found")
-    })
     public FactoryRequest updateStatus(
             @PathVariable("id") Long requestId,
             @RequestParam FactoryRequestStatus status
     ) {
         return factoryRequestService.updateStatus(requestId, status);
     }
+
+    // =====================================================
+    // NEW API: GET AUTO SUGGESTED PRODUCTION QUANTITY
+    // =====================================================
+    @GetMapping("/suggested-quantity")
+    @Operation(summary = "Get auto suggested production quantity for product")
+    public Map<String, Integer> getSuggestedQuantity(
+            @RequestParam Long productId
+    ) {
+        int quantity = factoryRequestService.getSuggestedQuantity(productId);
+
+        return Map.of("quantity", quantity);
+    }
+
 }
