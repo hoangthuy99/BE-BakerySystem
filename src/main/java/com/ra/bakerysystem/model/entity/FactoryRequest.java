@@ -32,16 +32,18 @@ public class FactoryRequest {
     @Column(name = "request_quantity", nullable = false)
     private Integer requestQuantity;
 
-    /*
-     * ========================= FIX =========================
-     * delivered_quantity:
-     *  - Số lượng đã giao thực tế
-     *  - NOT NULL trong DB
-     *  - Mặc định = 0 khi tạo request
-     * ======================================================
-     */
     @Column(name = "delivered_quantity", nullable = false)
     private Integer deliveredQuantity;
+
+    /**
+     * ================= FIX BUG AUTO +10 =================
+     * inventory_applied:
+     *  - Đánh dấu request này đã cộng kho hay chưa
+     *  - Giúp tránh cộng kho lặp khi reload / sync
+     * ====================================================
+     */
+    @Column(name = "inventory_applied", nullable = false)
+    private Boolean inventoryApplied;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
