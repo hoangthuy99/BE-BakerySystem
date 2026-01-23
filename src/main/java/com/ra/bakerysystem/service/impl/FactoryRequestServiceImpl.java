@@ -11,14 +11,12 @@ import com.ra.bakerysystem.repository.OrderItemRepository;
 import com.ra.bakerysystem.repository.ProductRepository;
 import com.ra.bakerysystem.service.FactoryRequestService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j; // ✅ ADD
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Slf4j // ✅ ADD
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -35,12 +33,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     @Override
     public FactoryRequest create(FactoryRequestDTO dto) {
 
-        // 🔥 LOG QUAN TRỌNG NHẤT
-        log.error("🚨 [CREATE FACTORY REQUEST] dto = {}", dto);
-        log.error("🚨 CALL STACK:");
-        for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
-            log.error("    at {}", e);
-        }
 
         Product product = productRepository.findById(dto.getProductId())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -65,10 +57,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
-                request.getProductId(),
-                request.getRequestQuantity()
-        );
 
         return factoryRequestRepository.save(request);
     }
@@ -81,18 +69,12 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     @Override
     public FactoryRequest updateStatus(Long requestId, FactoryRequestStatus status) {
 
-        log.info("🔄 updateStatus called: requestId={}, status={}", requestId, status);
-
         FactoryRequest request = factoryRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
         if (status == FactoryRequestStatus.DELIVERED
                 && Boolean.FALSE.equals(request.getInventoryApplied())) {
 
-            log.warn("📦 APPLY INVENTORY: productId={}, +{}",
-                    request.getProductId(),
-                    request.getRequestQuantity()
-            );
 
             Inventory inventory = inventoryRepository.findById(request.getProductId())
                     .orElseThrow(() -> new RuntimeException("Inventory not found"));
@@ -111,7 +93,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
     @Override
     public int getSuggestedQuantity(Long productId) {
-        log.info("📊 getSuggestedQuantity called for productId={}", productId);
 
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -124,7 +105,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     }
 
     private int calculateAutoRequestQuantity(Long productId) {
-        log.info("🧮 calculateAutoRequestQuantity(productId={})", productId);
 
         LocalDateTime startOfToday = LocalDateTime.now()
                 .toLocalDate()
@@ -143,7 +123,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         LocalDateTime lastSold = orderItemRepository.getLastSoldDate(productId);
 
         if (firstSold == null || lastSold == null || totalSold == 0) {
-            log.warn("⚠️ No sales history → default 10");
             return 10;
         }
 
@@ -154,9 +133,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
         double averagePerDay = (double) totalSold / days;
         int suggested = (int) Math.ceil(averagePerDay - soldToday);
-
-        log.info("📈 avg/day={}, soldToday={}, suggested={}",
-                averagePerDay, soldToday, suggested);
 
         return Math.max(suggested, 10);
     }
