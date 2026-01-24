@@ -104,7 +104,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         FactoryRequest request = factoryRequestRepository.findById(requestId)
             .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
-        if (status == FactoryRequestStatus.DELIVERED
+        if ((status == FactoryRequestStatus.DELIVERED || status == FactoryRequestStatus.PARTIAL)
             && Boolean.FALSE.equals(request.getInventoryApplied())) {
 
             log.warn("📦 APPLY INVENTORY: productId={}, +{}",
