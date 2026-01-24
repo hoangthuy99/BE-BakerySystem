@@ -175,14 +175,16 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
             );
         }
         // Tổng số lượng order trong quá khứ
-        int orderPast = CollectionUtils.isEmpty(orderItemsPast)
-            ?
-            0 :
+        int avgOrderPast = CollectionUtils.isEmpty(orderItemsPast)
+            ? 0
+            : (int) Math.round(
             orderItemsPast.stream()
-            .map(OrderItem::getQuantity)
-            .filter(Objects::nonNull)
-            .mapToInt(Integer::intValue)
-            .sum();
+                .map(OrderItem::getQuantity)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0)
+        );
 
         // Tổng số lượng order hôm nay
         int orderToday = orderItemsToday.stream()
@@ -192,12 +194,12 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
             .sum();
 
         // Nếu hôm nay bán nhiều hơn quá khứ → fallback về default
-        if (orderPast < orderToday) {
+        if (avgOrderPast < orderToday) {
             return defaultRequest;
         }
 
         // Đề xuất số lượng cần request thêm
-        int suggested = orderPast - orderToday;
+        int suggested = avgOrderPast - orderToday;
 
         // Không cho nhỏ hơn defaultRequest
         return Math.max(suggested, defaultRequest);
