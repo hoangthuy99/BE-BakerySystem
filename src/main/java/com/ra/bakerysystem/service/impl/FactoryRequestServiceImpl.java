@@ -4,6 +4,7 @@ import com.ra.bakerysystem.common.FactoryRequestStatus;
 import com.ra.bakerysystem.model.DTO.FactoryRequestDTO;
 import com.ra.bakerysystem.model.entity.FactoryRequest;
 import com.ra.bakerysystem.model.entity.Inventory;
+import com.ra.bakerysystem.model.entity.OrderItem;
 import com.ra.bakerysystem.model.entity.Product;
 import com.ra.bakerysystem.repository.FactoryRequestRepository;
 import com.ra.bakerysystem.repository.InventoryRepository;
@@ -11,12 +12,16 @@ import com.ra.bakerysystem.repository.OrderItemRepository;
 import com.ra.bakerysystem.repository.ProductRepository;
 import com.ra.bakerysystem.service.FactoryRequestService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j; // ✅ ADD
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j // ✅ ADD
 @Service
@@ -28,7 +33,11 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderItemRepository orderItemRepository;
+//    private final SalesAverageCalculateRepository salesAverageCalculateRepository;
 
+
+    @Value("${request.default:10}")
+    private int defaultRequest;
     // =========================
     // CREATE FACTORY REQUEST
     // =========================
@@ -43,7 +52,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         }
 
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+            .orElseThrow(() -> new RuntimeException("Product not found"));
 
         int finalRequestQuantity;
 
@@ -54,20 +63,20 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         }
 
         FactoryRequest request = FactoryRequest.builder()
-                .productId(product.getId())
-                .productName(product.getName())
-                .requestQuantity(finalRequestQuantity)
-                .deliveredQuantity(0)
-                .inventoryApplied(false)
-                .etaAt(dto.getEtaAt())
-                .note(dto.getNote())
-                .status(FactoryRequestStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .build();
+            .productId(product.getId())
+            .productName(product.getName())
+            .requestQuantity(finalRequestQuantity)
+            .deliveredQuantity(0)
+            .inventoryApplied(false)
+            .etaAt(dto.getEtaAt())
+            .note(dto.getNote())
+            .status(FactoryRequestStatus.PENDING)
+            .createdAt(LocalDateTime.now())
+            .build();
 
         log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
-                request.getProductId(),
-                request.getRequestQuantity()
+            request.getProductId(),
+            request.getRequestQuantity()
         );
 
         return factoryRequestRepository.save(request);
@@ -84,21 +93,21 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         log.info("🔄 updateStatus called: requestId={}, status={}", requestId, status);
 
         FactoryRequest request = factoryRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Factory request not found"));
+            .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
         if (status == FactoryRequestStatus.DELIVERED
-                && Boolean.FALSE.equals(request.getInventoryApplied())) {
+            && Boolean.FALSE.equals(request.getInventoryApplied())) {
 
             log.warn("📦 APPLY INVENTORY: productId={}, +{}",
-                    request.getProductId(),
-                    request.getRequestQuantity()
+                request.getProductId(),
+                request.getRequestQuantity()
             );
 
             Inventory inventory = inventoryRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Inventory not found"));
+                .orElseThrow(() -> new RuntimeException("Inventory not found"));
 
             inventory.setCurrentQuantity(
-                    inventory.getCurrentQuantity() + request.getRequestQuantity()
+                inventory.getCurrentQuantity() + request.getRequestQuantity()
             );
             inventoryRepository.save(inventory);
 
@@ -114,7 +123,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         log.info("📊 getSuggestedQuantity called for productId={}", productId);
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+            .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (Boolean.TRUE.equals(product.getAlcoholic())) {
             return 0;
@@ -125,39 +134,44 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
     private int calculateAutoRequestQuantity(Long productId) {
         log.info("🧮 calculateAutoRequestQuantity(productId={})", productId);
+        LocalDate today = LocalDate.now();
+//        AverageType avgType;
+//        LocalDate effectiveDate;
+//        if (today.getMonthValue() == 1 && today.getDayOfMonth() == 1) {
+//            avgType = AverageType.YEAR;
+//            effectiveDate = today.minusYears(1).withDayOfYear(1);
+//        } else if (today.getDayOfMonth() == 1) {
+//            avgType = AverageType.MONTH;
+//            effectiveDate = today.minusMonths(1).withDayOfMonth(1);
+//        } else {
+//            avgType = AverageType.DAY;
+//            effectiveDate = today;
+//        }
+        // =========================
+        // 2. Lấy snapshot trung bình
+        // =========================
+//        SaleAverageCalculateEntity saleAverageCalculate =
+//            salesAverageCalculateRepository.findLatestAverageByDate(productId, avgType.name(), effectiveDate)
+//                .orElse(null);
+//        if (saleAverageCalculate == null) {
+//            log.warn("⚠️ No average snapshot found → default {}",defaultRequest);
+//            return defaultRequest;
+//        }
+//        int average;
+//        int average = saleAverageCalculate.getAverageQuantity();
+        List<OrderItem> orderItemsPast = orderItemRepository.getOrderItemsByOrderTime(null,productId);
+        List<OrderItem> orderItemsToday = orderItemRepository.getOrderItemsByOrderTime(today,productId);
 
-        LocalDateTime startOfToday = LocalDateTime.now()
-                .toLocalDate()
-                .atStartOfDay();
-        LocalDateTime endOfToday = startOfToday.plusDays(1);
-
-        int soldToday = orderItemRepository.getSoldInRange(
-                productId,
-                startOfToday,
-                endOfToday
-        );
-
-        long totalSold = orderItemRepository.getTotalSold(productId);
-
-        LocalDateTime firstSold = orderItemRepository.getFirstSoldDate(productId);
-        LocalDateTime lastSold = orderItemRepository.getLastSoldDate(productId);
-
-        if (firstSold == null || lastSold == null || totalSold == 0) {
-            log.warn("⚠️ No sales history → default 10");
-            return 10;
+        if (CollectionUtils.isEmpty(orderItemsToday)) {
+            log.warn("⚠️ Chưa có order nào với sản phẩm {} trong ngày hôm nay", productId);
+            throw new RuntimeException("Chưa có order nào với sản phẩm " + productId + " trong ngày hôm nay đến thời điểm hiện tại");
         }
-
-        long days = Math.max(
-                java.time.Duration.between(firstSold, lastSold).toDays() + 1,
-                1
-        );
-
-        double averagePerDay = (double) totalSold / days;
-        int suggested = (int) Math.ceil(averagePerDay - soldToday);
-
-        log.info("📈 avg/day={}, soldToday={}, suggested={}",
-                averagePerDay, soldToday, suggested);
-
-        return Math.max(suggested, 10);
+        int orderPast = orderItemsPast.stream().map(OrderItem::getQuantity).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
+        int orderToday = orderItemsToday.stream().map(OrderItem::getQuantity).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
+        if (orderPast < orderToday) {
+            return defaultRequest;
+        }
+        int suggested = orderPast - orderToday;
+        return Math.max(suggested, defaultRequest);
     }
 }

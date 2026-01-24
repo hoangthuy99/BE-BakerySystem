@@ -24,4 +24,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("search") String search,
             @Param("isActive") Boolean isActive
     );
+
+    List<Product> findAllByActive(Boolean active);
 }

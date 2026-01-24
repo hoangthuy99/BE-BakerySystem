@@ -62,8 +62,8 @@ public class FactoryRequestController {
     public Map<String, Integer> getSuggestedQuantity(
             @RequestParam Long productId
     ) {
+        if (productId == null) throw new NullPointerException("productId is null");
         int quantity = factoryRequestService.getSuggestedQuantity(productId);
-
         return Map.of("quantity", quantity);
     }
 
