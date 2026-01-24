@@ -7,6 +7,8 @@ import com.ra.bakerysystem.service.FactoryRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,11 @@ public class FactoryRequestController {
         return factoryRequestService.getAll();
     }
 
+    @GetMapping
+    @Operation(summary = "Get all factory requests")
+    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(@RequestParam(name = "date") LocalDate date) {
+        return factoryRequestService.getAllRequestFactoryByDateAndIsActive(date);
+    }
     // =========================
     // UPDATE STATUS
     // =========================
