@@ -134,7 +134,6 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
     private int calculateAutoRequestQuantity(Long productId) {
         log.info("🧮 calculateAutoRequestQuantity(productId={})", productId);
-        LocalDate today = LocalDate.now();
 //        AverageType avgType;
 //        LocalDate effectiveDate;
 //        if (today.getMonthValue() == 1 && today.getDayOfMonth() == 1) {
@@ -159,19 +158,48 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 //        }
 //        int average;
 //        int average = saleAverageCalculate.getAverageQuantity();
-        List<OrderItem> orderItemsPast = orderItemRepository.getOrderItemsByOrderTime(null,productId);
-        List<OrderItem> orderItemsToday = orderItemRepository.getOrderItemsByOrderTime(today,productId);
+        LocalDate today = LocalDate.now();
+        // Order trong quá khứ (không truyền ngày)
+        List<OrderItem> orderItemsPast =
+            orderItemRepository.getOrderItemsByOrderTime(null, productId);
 
+        // Order trong ngày hôm nay
+        List<OrderItem> orderItemsToday =
+            orderItemRepository.getOrderItemsByOrderTime(today, productId);
+
+        // Không có order hôm nay → không đủ dữ liệu để auto request
         if (CollectionUtils.isEmpty(orderItemsToday)) {
             log.warn("⚠️ Chưa có order nào với sản phẩm {} trong ngày hôm nay", productId);
-            throw new RuntimeException("Chưa có order nào với sản phẩm " + productId + " trong ngày hôm nay đến thời điểm hiện tại");
+            throw new RuntimeException(
+                "Chưa có order nào với sản phẩm " + productId + " trong ngày hôm nay đến thời điểm hiện tại"
+            );
         }
-        int orderPast = orderItemsPast.stream().map(OrderItem::getQuantity).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
-        int orderToday = orderItemsToday.stream().map(OrderItem::getQuantity).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
+        // Tổng số lượng order trong quá khứ
+        int orderPast = CollectionUtils.isEmpty(orderItemsPast)
+            ?
+            0 :
+            orderItemsPast.stream()
+            .map(OrderItem::getQuantity)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
+
+        // Tổng số lượng order hôm nay
+        int orderToday = orderItemsToday.stream()
+            .map(OrderItem::getQuantity)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
+
+        // Nếu hôm nay bán nhiều hơn quá khứ → fallback về default
         if (orderPast < orderToday) {
             return defaultRequest;
         }
+
+        // Đề xuất số lượng cần request thêm
         int suggested = orderPast - orderToday;
+
+        // Không cho nhỏ hơn defaultRequest
         return Math.max(suggested, defaultRequest);
     }
 }
