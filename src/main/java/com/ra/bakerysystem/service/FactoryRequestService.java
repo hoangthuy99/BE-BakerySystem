@@ -20,6 +20,8 @@ public interface FactoryRequestService {
 
     FactoryRequest updateStatus(Long requestId, FactoryRequestStatus status);
 
+    FactoryRequest receive(Long requestId, Integer deliveredQuantity);
+
     // PJ3: Thêm để tính số lượng đề xuất chỉ thị xưởng sản xuất thêm
     int getSuggestedQuantity(Long productId);
 }

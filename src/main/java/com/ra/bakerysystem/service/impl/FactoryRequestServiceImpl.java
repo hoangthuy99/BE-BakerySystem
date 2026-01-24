@@ -98,32 +98,42 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
     @Override
     public FactoryRequest updateStatus(Long requestId, FactoryRequestStatus status) {
+        log.info("updateStatus called: requestId={}, status={}", requestId, status);
+        FactoryRequest request = factoryRequestRepository.findById(requestId)
+            .orElseThrow(() -> new RuntimeException("Factory request not found"));
+        request.setStatus(status);
+        return factoryRequestRepository.save(request);
+    }
 
-        log.info("🔄 updateStatus called: requestId={}, status={}", requestId, status);
+    @Override
+    public FactoryRequest receive(Long requestId, Integer quantity) {
+        log.info("Receiving goods: requestId={}, quantity={}", requestId, quantity);
 
         FactoryRequest request = factoryRequestRepository.findById(requestId)
             .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
-        if ((status == FactoryRequestStatus.DELIVERED || status == FactoryRequestStatus.PARTIAL)
-            && Boolean.FALSE.equals(request.getInventoryApplied())) {
-
-            log.warn("📦 APPLY INVENTORY: productId={}, +{}",
-                request.getProductId(),
-                request.getRequestQuantity()
-            );
-
-//            Inventory inventory = inventoryRepository.findById(request.getProductId())
-//                .orElseThrow(() -> new RuntimeException("Inventory not found"));
-//
-//            inventory.setCurrentQuantity(
-//                inventory.getCurrentQuantity() + request.getRequestQuantity()
-//            );
-//            inventoryRepository.save(inventory);
-
-            request.setInventoryApplied(true);
+        if (request.getStatus() == FactoryRequestStatus.DELIVERED 
+            || request.getStatus() == FactoryRequestStatus.PARTIAL 
+            || request.getStatus() == FactoryRequestStatus.CANCELLED) {
+            throw new RuntimeException("Cannot receive goods for completed, partial or cancelled request");
         }
 
-        request.setStatus(status);
+        int totalDelivered = request.getDeliveredQuantity() + quantity;
+        request.setDeliveredQuantity(totalDelivered);
+
+        if (totalDelivered >= request.getRequestQuantity()) {
+            request.setStatus(FactoryRequestStatus.DELIVERED);
+        } else {
+            request.setStatus(FactoryRequestStatus.PARTIAL);
+        }
+
+        Inventory inventory = inventoryRepository.findById(request.getProductId()).orElse(null);
+        if (inventory != null) {
+            inventory.setCurrentQuantity(inventory.getCurrentQuantity() + quantity);
+            inventoryRepository.save(inventory);
+            log.info("Inventory Updated: product={}, added={}", request.getProductName(), quantity);
+        }
+
         return factoryRequestRepository.save(request);
     }
 

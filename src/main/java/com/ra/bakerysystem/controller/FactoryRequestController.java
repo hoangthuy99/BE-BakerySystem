@@ -64,6 +64,15 @@ public class FactoryRequestController {
         return factoryRequestService.updateStatus(requestId, status);
     }
 
+    @PatchMapping("/{id}/receive")
+    @Operation(summary = "Receive goods for factory request")
+    public FactoryRequest receive(
+            @PathVariable("id") Long requestId,
+            @RequestParam Integer deliveredQuantity
+    ) {
+        return factoryRequestService.receive(requestId, deliveredQuantity);
+    }
+
     // =====================================================
     // NEW API: GET AUTO SUGGESTED PRODUCTION QUANTITY
     // =====================================================
