@@ -38,15 +38,15 @@ public class FactoryRequestController {
     // =========================
     // GET ALL
     // =========================
-    @GetMapping
-    @Operation(summary = "Get all factory requests")
-    public List<FactoryRequest> getAll() {
-        return factoryRequestService.getAll();
-    }
+//    @GetMapping("")
+//    @Operation(summary = "Get all factory requests")
+//    public List<FactoryRequest> getAll() {
+//        return factoryRequestService.getAll();
+//    }
 
-    @GetMapping
+    @GetMapping("")
     @Operation(summary = "Get all factory requests")
-    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(@RequestParam(name = "date") LocalDate date) {
+    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(@RequestParam(name = "date", required = false) LocalDate date) {
         return factoryRequestService.getAllRequestFactoryByDateAndIsActive(date);
     }
     // =========================

@@ -13,7 +13,7 @@ public interface FactoryRequestService {
 
     FactoryRequest create(FactoryRequestDTO dto);
 
-    List<FactoryRequest> getAll();
+//    List<FactoryRequest> getAll();
 
     List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date) ;
 
