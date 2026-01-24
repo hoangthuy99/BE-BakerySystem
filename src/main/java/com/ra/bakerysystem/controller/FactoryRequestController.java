@@ -46,8 +46,11 @@ public class FactoryRequestController {
 
     @GetMapping("")
     @Operation(summary = "Get all factory requests")
-    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(@RequestParam(name = "date", required = false) LocalDate date) {
-        return factoryRequestService.getAllRequestFactoryByDateAndIsActive(date);
+    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(
+            @RequestParam(name = "date", required = false) LocalDate date,
+            @RequestParam(name = "status", required = false) FactoryRequestStatus status
+    ) {
+        return factoryRequestService.getAllRequestFactoryByDateAndIsActive(date, status);
     }
     // =========================
     // UPDATE STATUS

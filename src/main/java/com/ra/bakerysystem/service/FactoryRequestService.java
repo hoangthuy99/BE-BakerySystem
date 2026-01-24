@@ -15,7 +15,7 @@ public interface FactoryRequestService {
 
 //    List<FactoryRequest> getAll();
 
-    List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date) ;
+    List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date, FactoryRequestStatus status) ;
 
 
     FactoryRequest updateStatus(Long requestId, FactoryRequestStatus status);

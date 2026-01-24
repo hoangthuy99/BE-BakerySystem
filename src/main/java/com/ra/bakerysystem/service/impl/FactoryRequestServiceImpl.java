@@ -89,11 +89,11 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 //    }
 
     @Override
-    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date) {
-        if (date == null) {
+    public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date, FactoryRequestStatus status) {
+        if (date == null && status == null) {
             return factoryRequestRepository.findAll();
         }
-        return factoryRequestRepository.findByDateAndStatus(date, FactoryRequestStatus.PENDING.name());
+        return factoryRequestRepository.findByDateAndStatus(date, status);
     }
 
     @Override

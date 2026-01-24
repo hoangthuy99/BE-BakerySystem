@@ -19,7 +19,7 @@ public interface FactoryRequestRepository
     """)
     List<FactoryRequest> findByDateAndStatus(
         @Param("date") LocalDate date,
-        @Param("status") String status
+        @Param("status") FactoryRequestStatus status
     );
 }
 
