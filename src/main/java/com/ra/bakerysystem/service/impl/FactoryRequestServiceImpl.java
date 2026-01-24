@@ -103,13 +103,13 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
                 request.getRequestQuantity()
             );
 
-            Inventory inventory = inventoryRepository.findById(request.getProductId())
-                .orElseThrow(() -> new RuntimeException("Inventory not found"));
-
-            inventory.setCurrentQuantity(
-                inventory.getCurrentQuantity() + request.getRequestQuantity()
-            );
-            inventoryRepository.save(inventory);
+//            Inventory inventory = inventoryRepository.findById(request.getProductId())
+//                .orElseThrow(() -> new RuntimeException("Inventory not found"));
+//
+//            inventory.setCurrentQuantity(
+//                inventory.getCurrentQuantity() + request.getRequestQuantity()
+//            );
+//            inventoryRepository.save(inventory);
 
             request.setInventoryApplied(true);
         }
