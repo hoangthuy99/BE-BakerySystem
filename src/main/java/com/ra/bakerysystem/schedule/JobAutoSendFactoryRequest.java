@@ -41,8 +41,9 @@ public class JobAutoSendFactoryRequest {
     @Value("${app.idCake}")
     private String listIdCake;
 
-    @Scheduled(cron = "0 0 12 * * *",zone = "${app.time.zone}")
+    @Scheduled(cron = "0 10 23 * * *",zone = "${app.time.zone}")
     void jobAutoSendFactoryRequestFirst(){
+        log.info("job request factory start ");
         List<Long> ids = Arrays.stream(listIdCake.split(","))
             .map(String::trim)
             .map(Long::valueOf)
@@ -56,9 +57,11 @@ public class JobAutoSendFactoryRequest {
                 log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProductId());
                 continue;
             }
+            log.info("Tạo yêu cầu đặt hàng với sản phảm {} ", inventory.getProduct().getName());
+
             int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProductId());
             Instant etaInstant = Instant.now()
-                .atZone(ZoneId.systemDefault())
+                .atZone(businessZone)
                 .toInstant();
             FactoryRequest request = FactoryRequest.builder()
                 .productId(inventory.getProductId())
@@ -72,7 +75,7 @@ public class JobAutoSendFactoryRequest {
                 .createdAt(Instant.now())
                 .build();
 
-            log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
+            log.info("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
                 request.getProductId(),
                 request.getRequestQuantity()
             );
@@ -81,21 +84,25 @@ public class JobAutoSendFactoryRequest {
     }
     @Scheduled(cron = "0 0 17 * * *",zone = "${app.time.zone}")
     void jobAutoSendFactoryRequestSecond(){
+        log.info("job request factory start ");
         List<Long> ids = Arrays.stream(listIdCake.split(","))
             .map(String::trim)
             .map(Long::valueOf)
             .toList();
         List<Inventory> inventories = inventoryRepository.getInventoryForRequestFactory(ids);
-        List<Long> factoryRequests = factoryRequestRepository.findByDateAndStatus(null,FactoryRequestStatus.PENDING).stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
+        List<Long> factoryRequests = factoryRequestRepository.findByDateAndStatus(null,FactoryRequestStatus.PENDING)
+            .stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
 
         for (Inventory inventory : inventories) {
             if (factoryRequests.contains(inventory.getProductId())) {
                 log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProductId());
                 continue;
             }
+            log.info("Tạo yêu cầu đặt hàng với sản phảm {} ", inventory.getProduct().getName());
+
             int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProductId());
             Instant etaInstant = Instant.now()
-                .atZone(ZoneId.systemDefault())
+                .atZone(businessZone)
                 .toInstant();
             FactoryRequest request = FactoryRequest.builder()
                 .productId(inventory.getProductId())
@@ -109,7 +116,7 @@ public class JobAutoSendFactoryRequest {
                 .createdAt(Instant.now())
                 .build();
 
-            log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
+            log.info("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
                 request.getProductId(),
                 request.getRequestQuantity()
             );
