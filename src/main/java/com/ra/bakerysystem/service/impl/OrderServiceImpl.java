@@ -96,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
 
             totalAmount += product.getPrice() * itemDTO.getQuantity();
         }
-        order.setOrderTime(Instant.now(clock));
+        order.setOrderTime(Instant.now());
         // 4. Tính tiền
         order.setTotalAmount(totalAmount);
         order.setChangeAmount(dto.getPaymentReceived() - totalAmount);
