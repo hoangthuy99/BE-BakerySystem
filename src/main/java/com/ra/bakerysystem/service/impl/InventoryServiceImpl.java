@@ -1,11 +1,9 @@
 package com.ra.bakerysystem.service.impl;
 
-import com.ra.bakerysystem.model.DTO.InventoryDTO;
 import com.ra.bakerysystem.model.entity.Inventory;
 import com.ra.bakerysystem.repository.InventoryRepository;
 import com.ra.bakerysystem.service.InventoryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

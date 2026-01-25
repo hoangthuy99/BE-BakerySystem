@@ -6,14 +6,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByOrderTimeBetween(
-            LocalDateTime start,
-            LocalDateTime end
+            Instant start,
+            Instant end
     );
 
     // Tổng doanh thu hôm nay
@@ -23,8 +24,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         WHERE o.orderTime BETWEEN :start AND :end
     """)
     Integer getDailySales(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
+            @Param("start") Instant start,
+            @Param("end") Instant end
     );
 
     // Tổng số đơn hôm nay
@@ -34,8 +35,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         WHERE o.orderTime BETWEEN :start AND :end
     """)
     Long getOrderCount(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
+            @Param("start") Instant start,
+            @Param("end") Instant end
     );
 
     // Doanh thu theo giờ (24h)
@@ -46,14 +47,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         GROUP BY HOUR(o.orderTime)
     """)
     List<Object[]> getHourlySales(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
+            @Param("start") Instant start,
+            @Param("end") Instant end
     );
 
     // Filter order theo type (EAT_IN / TAKE_AWAY)
     List<Order> findByOrderTimeBetweenAndOrderType(
-            LocalDateTime start,
-            LocalDateTime end,
+        Instant start,
+        Instant end,
             OrderType orderType
     );
 }

@@ -14,9 +14,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,12 +25,13 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
-
+    private final ZoneId businessZone;
+    private final Clock clock;
     @Override
     @Transactional
     public Order createOrder(OrderRequestDTO dto) {
 
-        LocalDateTime now = LocalDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now(businessZone);
 
         // 1. Validate Eat-in
         if (dto.getOrderType() == OrderType.EAT_IN
@@ -97,7 +96,7 @@ public class OrderServiceImpl implements OrderService {
 
             totalAmount += product.getPrice() * itemDTO.getQuantity();
         }
-
+        order.setOrderTime(Instant.now(clock));
         // 4. Tính tiền
         order.setTotalAmount(totalAmount);
         order.setChangeAmount(dto.getPaymentReceived() - totalAmount);
@@ -109,8 +108,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public List<Order> getOrdersByDate(LocalDate date, OrderType type) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.atTime(23, 59, 59);
+
+        Instant start = LocalDate.now(ZoneId.systemDefault())
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant();
+
+        Instant end = LocalDate.now(ZoneId.systemDefault())
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant();
 
         if (type != null) {
             return orderRepository.findByOrderTimeBetweenAndOrderType(

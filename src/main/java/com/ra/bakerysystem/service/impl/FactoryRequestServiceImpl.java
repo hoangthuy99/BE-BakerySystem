@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -72,7 +73,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
             .etaAt(dto.getEtaAt())
             .note(dto.getNote())
             .status(FactoryRequestStatus.PENDING)
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .build();
 
         log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
@@ -90,9 +91,9 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
     @Override
     public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date, FactoryRequestStatus status) {
-        if (date == null && status == null) {
-            return factoryRequestRepository.findAll();
-        }
+//        if (date == null && status == null) {
+//            return factoryRequestRepository.findAll();
+//        }
         return factoryRequestRepository.findByDateAndStatus(date, status);
     }
 

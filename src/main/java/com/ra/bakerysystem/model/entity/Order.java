@@ -6,6 +6,8 @@ import com.ra.bakerysystem.common.OrderType;
 import com.ra.bakerysystem.common.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,10 +26,9 @@ public class Order {
     @JsonProperty("order_id")
     private Long id;
 
-    @Column(name = "order_time", updatable = false) // Không cho phép cập nhật lại thời gian sau khi đã tạo
-    @JsonProperty(value = "order_time", access = JsonProperty.Access.READ_ONLY) // Frontend chỉ đọc, không được ghi đè
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private LocalDateTime orderTime;
+    @Column(name = "order_time", updatable = false, nullable = false)
+    @JsonProperty(value = "order_time", access = JsonProperty.Access.READ_ONLY)
+    private Instant orderTime;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type")
@@ -55,9 +56,9 @@ public class Order {
     @JsonProperty("items")
     private List<OrderItem> items;
 
-    @PrePersist
-    protected void onCreate() {
-        // Luôn gán thời gian hiện tại của server khi lưu vào DB
-        this.orderTime = LocalDateTime.now();
-    }
+//    @PrePersist
+//    protected void onCreate() {
+//        // Luôn gán thời gian hiện tại của server khi lưu vào DB
+//        this.orderTime = Instant.now();
+//    }
 }

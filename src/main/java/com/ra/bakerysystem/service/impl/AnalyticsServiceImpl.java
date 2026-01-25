@@ -10,8 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,8 +26,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public DashboardResponseDTO getDashboard() {
 
-        LocalDateTime start = LocalDate.now().atStartOfDay();
-        LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+        Instant start = LocalDate.now(ZoneId.systemDefault())
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant();
+
+        Instant end = LocalDate.now(ZoneId.systemDefault())
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant();
 
         Integer dailySales = orderRepository.getDailySales(start, end);
         Long orderCount = orderRepository.getOrderCount(start, end);
@@ -58,10 +63,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private List<Integer> getHourlySalesToday() {
-
-        LocalDate today = LocalDate.now();
-        LocalDateTime start = today.atStartOfDay();
-        LocalDateTime end = today.atTime(23, 59, 59);
+        Instant start = LocalDate.now(ZoneId.systemDefault())
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant();
+        Instant end = LocalDate.now(ZoneId.systemDefault())
+            .atTime(23, 59, 59)
+            .atZone(ZoneId.systemDefault())
+            .toInstant();
 
         List<Object[]> rawData = orderRepository.getHourlySales(start, end);
 

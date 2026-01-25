@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,12 +39,11 @@ public class Inventory {
 
     @Column(name = "last_updated")
     @JsonProperty("last_updated")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") // Khớp định dạng ISO string
-    private LocalDateTime lastUpdated;
+    private Instant lastUpdated;
 
     @PrePersist
     @PreUpdate
     protected void onUpdate() {
-        lastUpdated = LocalDateTime.now();
+        lastUpdated = Instant.now();
     }
 }

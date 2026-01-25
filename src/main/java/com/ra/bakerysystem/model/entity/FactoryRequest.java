@@ -6,6 +6,7 @@ import lombok.*;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -46,10 +47,10 @@ public class FactoryRequest {
     private Boolean inventoryApplied;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "eta_at", nullable = false)
-    private LocalDateTime etaAt;
+    private Instant etaAt;
 
     @Column(columnDefinition = "TEXT")
     private String note;
