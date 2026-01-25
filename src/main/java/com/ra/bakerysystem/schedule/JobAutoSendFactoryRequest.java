@@ -41,7 +41,7 @@ public class JobAutoSendFactoryRequest {
     @Value("${app.idCake}")
     private String listIdCake;
 
-    @Scheduled(cron = "0 10 23 * * *",zone = "${app.time.zone}")
+    @Scheduled(cron = "0 * * * * *",zone = "${app.time.zone}")
     void jobAutoSendFactoryRequestFirst(){
         log.info("job request factory start ");
         List<Long> ids = Arrays.stream(listIdCake.split(","))
