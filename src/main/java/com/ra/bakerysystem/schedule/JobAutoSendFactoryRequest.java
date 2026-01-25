@@ -41,7 +41,7 @@ public class JobAutoSendFactoryRequest {
     @Value("${app.idCake}")
     private String listIdCake;
 
-    @Scheduled(cron = "0 * * * * *",zone = "${app.time.zone}")
+    @Scheduled(cron = "0 0 12 * * *", zone = "${app.time.zone}")
     void jobAutoSendFactoryRequestFirst(){
         log.info("job request factory start ");
         List<Long> ids = Arrays.stream(listIdCake.split(","))
@@ -82,6 +82,7 @@ public class JobAutoSendFactoryRequest {
             factoryRequestRepository.save(request);
         }
     }
+
     @Scheduled(cron = "0 0 17 * * *",zone = "${app.time.zone}")
     void jobAutoSendFactoryRequestSecond(){
         log.info("job request factory start ");
@@ -98,7 +99,7 @@ public class JobAutoSendFactoryRequest {
                 log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProductId());
                 continue;
             }
-            log.info("Tạo yêu cầu đặt hàng với sản phảm {} ", inventory.getProduct().getName());
+            log.info("Tạo yêu cầu đặt hàng với sản phẩm {} ", inventory.getProduct().getName());
 
             int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProductId());
             Instant etaInstant = Instant.now()
