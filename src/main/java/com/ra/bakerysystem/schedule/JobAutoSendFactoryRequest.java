@@ -48,7 +48,8 @@ public class JobAutoSendFactoryRequest {
             .map(Long::valueOf)
             .toList();
         List<Inventory> inventories = inventoryRepository.getInventoryForRequestFactory(ids);
-        List<Long> factoryRequests = factoryRequestRepository.findByDateAndStatus(null,FactoryRequestStatus.PENDING).stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
+        List<Long> factoryRequests = factoryRequestRepository.findByDateAndStatus(null,FactoryRequestStatus.PENDING)
+            .stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
 
         for (Inventory inventory : inventories) {
             if (factoryRequests.contains(inventory.getProductId())) {

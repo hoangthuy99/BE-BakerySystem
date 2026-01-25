@@ -21,7 +21,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         select i.* from inventories i
         join products p on p.product_id = i.product_id
         join categories c on p.category_id = c.category_id
-        where c.category_id in (:listIdCategoryCake)
+        where c.category_id in (:listIdCategoryCake) and i.current_quantity <= i.min_threshold
     """, nativeQuery = true)
     List<Inventory> getInventoryForRequestFactory(@Param("listIdCategoryCake") List<Long> listIdCategoryCake);
 }
