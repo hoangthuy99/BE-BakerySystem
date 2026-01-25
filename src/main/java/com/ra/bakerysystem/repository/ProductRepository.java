@@ -26,4 +26,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
 
     List<Product> findAllByActive(Boolean active);
+
+//    @Query(value = """
+//
+//    """,nativeQuery=true)
+//    List<Product> findAllByIds(List<Long> ids);
+
 }

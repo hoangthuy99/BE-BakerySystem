@@ -18,9 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -37,7 +35,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     private final OrderItemRepository orderItemRepository;
 //    private final SalesAverageCalculateRepository salesAverageCalculateRepository;
 
-
+    private final ZoneId businessZone;
     @Value("${request.default:10}")
     private int defaultRequest;
     // =========================
@@ -47,11 +45,11 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     public FactoryRequest create(FactoryRequestDTO dto) {
 
         // 🔥 LOG QUAN TRỌNG NHẤT
-        log.error("🚨 [CREATE FACTORY REQUEST] dto = {}", dto);
-        log.error("🚨 CALL STACK:");
-        for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
-            log.error("    at {}", e);
-        }
+//        log.error("🚨 [CREATE FACTORY REQUEST] dto = {}", dto);
+//        log.error("🚨 CALL STACK:");
+//        for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
+//            log.error("    at {}", e);
+//        }
 
         Product product = productRepository.findById(dto.getProductId())
             .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -63,14 +61,16 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
         } else {
             finalRequestQuantity = dto.getRequestQuantity();
         }
-
+        Instant etaInstant = dto.getEtaAt()
+            .atZone(businessZone)
+            .toInstant();
         FactoryRequest request = FactoryRequest.builder()
             .productId(product.getId())
             .productName(product.getName())
             .requestQuantity(finalRequestQuantity)
             .deliveredQuantity(0)
             .inventoryApplied(false)
-            .etaAt(dto.getEtaAt())
+            .etaAt(etaInstant)
             .note(dto.getNote())
             .status(FactoryRequestStatus.PENDING)
             .createdAt(Instant.now())
@@ -178,14 +178,15 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 //        }
 //        int average;
 //        int average = saleAverageCalculate.getAverageQuantity();
-        LocalDate today = LocalDate.now();
+        ZonedDateTime now = ZonedDateTime.now();
+
         // Order trong quá khứ (không truyền ngày)
         List<OrderItem> orderItemsPast =
             orderItemRepository.getOrderItemsByOrderTime(null, productId);
 
         // Order trong ngày hôm nay
         List<OrderItem> orderItemsToday =
-            orderItemRepository.getOrderItemsByOrderTime(today, productId);
+            orderItemRepository.getOrderItemsByOrderTime(now.toLocalDate(), productId);
 
         // Không có order hôm nay → không đủ dữ liệu để auto request
         if (CollectionUtils.isEmpty(orderItemsToday)) {

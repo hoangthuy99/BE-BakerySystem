@@ -21,5 +21,17 @@ public interface FactoryRequestRepository
         @Param("date") LocalDate date,
         @Param("status") FactoryRequestStatus status
     );
+
+    @Query("""
+        SELECT fr
+        FROM FactoryRequest fr
+        WHERE (:date IS NULL OR DATE(fr.createdAt) = :date)
+          AND (:status IS NULL OR fr.status in (:status))
+    """)
+    List<FactoryRequest> findByDateAndStatus(
+        @Param("date") LocalDate date,
+        @Param("status") List<FactoryRequestStatus> status
+    );
+
 }
 
