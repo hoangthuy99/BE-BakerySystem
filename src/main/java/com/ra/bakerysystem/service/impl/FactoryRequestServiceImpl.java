@@ -56,11 +56,8 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
         int finalRequestQuantity;
 
-        if (Boolean.FALSE.equals(product.getAlcoholic())) {
-            finalRequestQuantity = calculateAutoRequestQuantity(product.getId());
-        } else {
-            finalRequestQuantity = dto.getRequestQuantity();
-        }
+        finalRequestQuantity = dto.getRequestQuantity();
+        
         Instant etaInstant = dto.getEtaAt()
             .atZone(businessZone)
             .toInstant();
