@@ -1,6 +1,7 @@
 package com.ra.bakerysystem.schedule;
 
 import com.ra.bakerysystem.common.FactoryRequestStatus;
+import com.ra.bakerysystem.model.DTO.OrderItemRequestDTO;
 import com.ra.bakerysystem.model.entity.FactoryRequest;
 import com.ra.bakerysystem.model.entity.Inventory;
 import com.ra.bakerysystem.model.entity.OrderItem;
@@ -31,10 +32,8 @@ import java.util.stream.Collectors;
 public class JobAutoSendFactoryRequest {
 
     private final FactoryRequestRepository factoryRequestRepository;
-    private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderItemRepository orderItemRepository;
-//    private final SalesAverageCalculateRepository salesAverageCalculateRepository;
     private final ZoneId businessZone;
     @Value("${request.default:10}")
     private int defaultRequest;
@@ -53,20 +52,20 @@ public class JobAutoSendFactoryRequest {
             .stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
 
         for (Inventory inventory : inventories) {
-            if (factoryRequests.contains(inventory.getProductId())) {
-                log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProductId());
+            if (factoryRequests.contains(inventory.getProduct().getId())) {
+                log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProduct().getId());
                 continue;
             }
             log.info("Tạo yêu cầu đặt hàng với sản phảm {} ", inventory.getProduct().getName());
 
-            int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProductId());
+            int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProduct().getId());
             Instant etaInstant = Instant.now()
                 .atZone(businessZone)
                 .toInstant();
             FactoryRequest request = FactoryRequest.builder()
-                .productId(inventory.getProductId())
+                .productId(inventory.getProduct().getId())
                 .productName(inventory.getProduct().getName())
-                .requestQuantity(finalRequestQuantity)
+                .quantity(finalRequestQuantity)
                 .deliveredQuantity(0)
                 .inventoryApplied(false)
                 .etaAt(etaInstant)
@@ -75,9 +74,9 @@ public class JobAutoSendFactoryRequest {
                 .createdAt(Instant.now())
                 .build();
 
-            log.info("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
+            log.info(" SAVING FACTORY REQUEST: productId={}, qty={}",
                 request.getProductId(),
-                request.getRequestQuantity()
+                request.getQuantity()
             );
             factoryRequestRepository.save(request);
         }
@@ -95,20 +94,20 @@ public class JobAutoSendFactoryRequest {
             .stream().map(FactoryRequest::getProductId).collect(Collectors.toList());
 
         for (Inventory inventory : inventories) {
-            if (factoryRequests.contains(inventory.getProductId())) {
-                log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProductId());
+            if (factoryRequests.contains(inventory.getProduct().getId())) {
+                log.info("product id : {} đã được tạo request nhưng chưa xử lý", inventory.getProduct().getId());
                 continue;
             }
             log.info("Tạo yêu cầu đặt hàng với sản phẩm {} ", inventory.getProduct().getName());
 
-            int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProductId());
+            int finalRequestQuantity =  calculateAutoRequestQuantity(inventory.getProduct().getId());
             Instant etaInstant = Instant.now()
                 .atZone(businessZone)
                 .toInstant();
             FactoryRequest request = FactoryRequest.builder()
-                .productId(inventory.getProductId())
+                .productId(inventory.getProduct().getId())
                 .productName(inventory.getProduct().getName())
-                .requestQuantity(finalRequestQuantity)
+                .quantity(finalRequestQuantity)
                 .deliveredQuantity(0)
                 .inventoryApplied(false)
                 .etaAt(etaInstant)
@@ -117,53 +116,57 @@ public class JobAutoSendFactoryRequest {
                 .createdAt(Instant.now())
                 .build();
 
-            log.info("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
+            log.info("SAVING FACTORY REQUEST: productId={}, qty={}",
                 request.getProductId(),
-                request.getRequestQuantity()
+                request.getQuantity()
             );
             factoryRequestRepository.save(request);
         }
     }
     private int calculateAutoRequestQuantity(Long productId) {
-        log.info("🧮 calculateAutoRequestQuantity(productId={})", productId);
+
+        log.info("calculateAutoRequestQuantity(productId={})", productId);
+
         ZonedDateTime now = ZonedDateTime.now();
 
         List<OrderItem> orderItemsPast =
-            orderItemRepository.getOrderItemsByOrderTime(null, productId);
+                orderItemRepository.getOrderItemsByOrderTime(null, productId);
 
         List<OrderItem> orderItemsToday =
-            orderItemRepository.getOrderItemsByOrderTime(now.toLocalDate(), productId);
+                orderItemRepository.getOrderItemsByOrderTime(now.toLocalDate(), productId);
+
 
         if (CollectionUtils.isEmpty(orderItemsToday)) {
-            log.warn("⚠️ Chưa có order nào với sản phẩm {} trong ngày hôm nay", productId);
-            throw new RuntimeException(
-                "Chưa có order nào với sản phẩm " + productId + " trong ngày hôm nay đến thời điểm hiện tại"
-            );
+            log.warn("Chưa có order nào với product {} hôm nay → dùng defaultRequest", productId);
+            return defaultRequest;
         }
+
         int avgOrderPast = CollectionUtils.isEmpty(orderItemsPast)
-            ? 0
-            : (int) Math.round(
-            orderItemsPast.stream()
-                .map(OrderItem::getQuantity)
-                .filter(Objects::nonNull)
-                .mapToInt(Integer::intValue)
-                .average()
-                .orElse(0)
+                ? 0
+                : (int) Math.round(
+                orderItemsPast.stream()
+                        .map(OrderItem::getQuantity)
+                        .filter(Objects::nonNull)
+                        .mapToInt(Integer::intValue)
+                        .average()
+                        .orElse(0)
         );
 
         int orderToday = orderItemsToday.stream()
-            .map(OrderItem::getQuantity)
-            .filter(Objects::nonNull)
-            .mapToInt(Integer::intValue)
-            .sum();
+                .map(OrderItem::getQuantity)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
 
-        if (avgOrderPast < orderToday) {
+        // Nếu hôm nay bán nhiều hơn trung bình → giữ mức tối thiểu
+        if (avgOrderPast <= orderToday) {
             return defaultRequest;
         }
 
         int suggested = avgOrderPast - orderToday;
 
-        // Không cho nhỏ hơn defaultRequest
         return Math.max(suggested, defaultRequest);
     }
+
+
 }

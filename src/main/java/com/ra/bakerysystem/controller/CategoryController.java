@@ -14,18 +14,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/v1/categories")
+@RequestMapping("/app/category")
 @RequiredArgsConstructor
 @Tag(name = "Category API")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
-    @GetMapping
-    @Operation(summary = "Get all categories")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Success")
-    })
+    @GetMapping("/all")
     public List<CategoryDTO> getAllCategories() {
         return categoryService.getAllCategories();
     }

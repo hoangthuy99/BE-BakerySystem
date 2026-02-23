@@ -12,12 +12,11 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CategoryDTO {
 
-    @JsonProperty("category_id")
-    private Long id;
+    private Long categoryId;
     private String name;
 
     public CategoryDTO(Category category) {
-        this.id = category.getId();
+        this.categoryId = category.getId();
         this.name = category.getName();
     }
 }

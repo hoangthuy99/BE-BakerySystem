@@ -30,8 +30,8 @@ public class FactoryRequest {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
-    @Column(name = "request_quantity", nullable = false)
-    private Integer requestQuantity;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
 
     @Column(name = "delivered_quantity", nullable = false)
     private Integer deliveredQuantity;

@@ -22,27 +22,29 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final OrderRepository orderRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderItemRepository orderItemRepository;
+    private final ZoneId businessZone;
 
     @Override
     public DashboardResponseDTO getDashboard() {
 
-        Instant start = LocalDate.now(ZoneId.systemDefault())
-            .atStartOfDay(ZoneId.systemDefault())
-            .toInstant();
 
-        Instant end = LocalDate.now(ZoneId.systemDefault())
-            .atTime(23, 59, 59)
-            .atZone(ZoneId.systemDefault())
-            .toInstant();
+        LocalDate today = LocalDate.now(businessZone);
+
+        Instant start = today
+                .atStartOfDay(businessZone)
+                .toInstant();
+
+        Instant end = today
+                .atTime(23, 59, 59)
+                .atZone(businessZone)
+                .toInstant();
 
         Integer dailySales = orderRepository.getDailySales(start, end);
         Long orderCount = orderRepository.getOrderCount(start, end);
         Long lowStockCount = inventoryRepository.countLowStock();
 
-        // GỌI METHOD CHUNG (KHÔNG DUPLICATE LOGIC)
-        List<Integer> hourlySales = getHourlySalesToday();
+        List<Integer> hourlySales = getHourlySales(today);
 
-        // Top 5 products
         List<PopularProductDTO> popularProducts =
                 orderItemRepository.findTopProducts(PageRequest.of(0, 5))
                         .stream()
@@ -54,22 +56,24 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         .toList();
 
         return DashboardResponseDTO.builder()
-                .dailySales(dailySales)
-                .orderCount(orderCount.intValue())
-                .lowStockCount(lowStockCount.intValue())
+                .dailySales(dailySales != null ? dailySales : 0)
+                .orderCount(orderCount != null ? orderCount.intValue() : 0)
+                .lowStockCount(lowStockCount != null ? lowStockCount.intValue() : 0)
                 .hourlySales(hourlySales)
                 .popularProducts(popularProducts)
                 .build();
     }
 
-    private List<Integer> getHourlySalesToday() {
-        Instant start = LocalDate.now(ZoneId.systemDefault())
-            .atStartOfDay(ZoneId.systemDefault())
-            .toInstant();
-        Instant end = LocalDate.now(ZoneId.systemDefault())
-            .atTime(23, 59, 59)
-            .atZone(ZoneId.systemDefault())
-            .toInstant();
+    private List<Integer> getHourlySales(LocalDate date) {
+
+        Instant start = date
+                .atStartOfDay(businessZone)
+                .toInstant();
+
+        Instant end = date
+                .atTime(23, 59, 59)
+                .atZone(businessZone)
+                .toInstant();
 
         List<Object[]> rawData = orderRepository.getHourlySales(start, end);
 

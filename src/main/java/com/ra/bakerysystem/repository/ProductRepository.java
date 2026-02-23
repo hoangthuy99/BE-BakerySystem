@@ -6,12 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    List<Product> findByActiveTrue();
 
-    List<Product> findByCategory_IdAndActiveTrue(Long categoryId);
 
     @Query("""
         SELECT p FROM Product p
@@ -25,11 +24,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("isActive") Boolean isActive
     );
 
-    List<Product> findAllByActive(Boolean active);
+    boolean existsByName(String name);
 
-//    @Query(value = """
-//
-//    """,nativeQuery=true)
-//    List<Product> findAllByIds(List<Long> ids);
 
+    Optional<Product> findByName(String name);
+
+    @Query("""
+        SELECT p, i
+        FROM Product p
+        LEFT JOIN Inventory i ON i.product.id = p.id
+        WHERE
+            (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        AND
+            (:categoryId IS NULL OR p.category.id = :categoryId)
+        ORDER BY p.id
+    """)
+    List<Object[]> findProductsWithInventory(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId
+    );
 }

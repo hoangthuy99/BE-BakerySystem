@@ -2,6 +2,7 @@ package com.ra.bakerysystem.service.impl;
 
 import com.ra.bakerysystem.common.FactoryRequestStatus;
 import com.ra.bakerysystem.model.DTO.FactoryRequestDTO;
+import com.ra.bakerysystem.model.DTO.OrderItemRequestDTO;
 import com.ra.bakerysystem.model.entity.FactoryRequest;
 import com.ra.bakerysystem.model.entity.Inventory;
 import com.ra.bakerysystem.model.entity.OrderItem;
@@ -33,49 +34,55 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
     private final OrderItemRepository orderItemRepository;
-//  private final SalesAverageCalculateRepository salesAverageCalculateRepository;
 
      private final ZoneId businessZone;
      @Value("${request.default:10}")
      private int defaultRequest;
-    // =========================
-    // CREATE FACTORY REQUEST
-    // =========================
+
     @Override
     public FactoryRequest create(FactoryRequestDTO dto) {
 
+        if (dto.getEtaAt() == null) {
+            throw new IllegalArgumentException("etaAt must not be null");
+        }
 
         Product product = productRepository.findById(dto.getProductId())
-            .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        int finalRequestQuantity;
+        int finalRequestQuantity = dto.getQuantity();
 
-        finalRequestQuantity = dto.getRequestQuantity();
-         Instant etaInstant = dto.getEtaAt()
-             .atZone(businessZone)
-             .toInstant();
+        ZoneId zone = businessZone != null
+                ? businessZone
+                : ZoneId.systemDefault();
+
+        Instant etaInstant = dto.getEtaAt()
+                .atZone(zone)
+                .toInstant();
+
         FactoryRequest request = FactoryRequest.builder()
-            .productId(product.getId())
-            .productName(product.getName())
-            .requestQuantity(finalRequestQuantity)
-            .deliveredQuantity(0)
-            .inventoryApplied(false)
-            .etaAt(etaInstant)
-            .note(dto.getNote())
-            .status(FactoryRequestStatus.PENDING)
-            .createdAt(Instant.now())
-            .build();
+                .productId(product.getId())
+                .productName(product.getName())
+                .quantity(finalRequestQuantity)
+                .deliveredQuantity(0)
+                .inventoryApplied(false)
+                .etaAt(etaInstant)
+                .note(dto.getNote())
+                .status(FactoryRequestStatus.PENDING)
+                .createdAt(Instant.now())
+                .build();
 
-        log.error("🚨 SAVING FACTORY REQUEST: productId={}, qty={}",
-            request.getProductId(),
-            request.getRequestQuantity()
+        log.info("Saving FactoryRequest: productId={}, qty={}, eta={}",
+                request.getProductId(),
+                request.getQuantity(),
+                request.getEtaAt()
         );
 
         return factoryRequestRepository.save(request);
     }
 
 
-     @Override
+
+    @Override
      public List<FactoryRequest> getAllRequestFactoryByDateAndIsActive(LocalDate date, FactoryRequestStatus status) {
        return factoryRequestRepository.findByDateAndStatus(date, status);
      }
@@ -96,33 +103,36 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
             .orElseThrow(() -> new RuntimeException("Factory request not found"));
 
          if (request.getStatus() == FactoryRequestStatus.DELIVERED
-             || request.getStatus() == FactoryRequestStatus.PARTIAL
-             || request.getStatus() == FactoryRequestStatus.CANCELLED) {
-             throw new RuntimeException("Cannot receive goods for completed, partial or cancelled request");
+                 || request.getStatus() == FactoryRequestStatus.CANCELLED) {
+             throw new RuntimeException("Cannot receive goods for completed or cancelled request");
          }
+
 
          int totalDelivered = request.getDeliveredQuantity() + quantity;
          request.setDeliveredQuantity(totalDelivered);
 
-         if (totalDelivered >= request.getRequestQuantity()) {
+         if (totalDelivered >= request.getQuantity()) {
              request.setStatus(FactoryRequestStatus.DELIVERED);
          } else {
              request.setStatus(FactoryRequestStatus.PARTIAL);
          }
 
-         Inventory inventory = inventoryRepository.findById(request.getProductId()).orElse(null);
-         if (inventory != null) {
-             inventory.setCurrentQuantity(inventory.getCurrentQuantity() + quantity);
-             inventoryRepository.save(inventory);
-             log.info("Inventory Updated: product={}, added={}", request.getProductName(), quantity);
-        }
+         Inventory inventory = inventoryRepository
+                 .findByProductId(request.getProductId())
+                 .orElseThrow(() -> new RuntimeException("Inventory not found"));
+
+         inventory.setCurrentQuantity(
+                 inventory.getCurrentQuantity() + quantity
+         );
+
+         inventoryRepository.save(inventory);
 
         return factoryRequestRepository.save(request);
     }
 
     @Override
     public int getSuggestedQuantity(Long productId) {
-        log.info("📊 getSuggestedQuantity called for productId={}", productId);
+        log.info(" getSuggestedQuantity called for productId={}", productId);
 
         Product product = productRepository.findById(productId)
             .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -135,31 +145,8 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
     }
 
     private int calculateAutoRequestQuantity(Long productId) {
-        log.info("🧮 calculateAutoRequestQuantity(productId={})", productId);
-//       AverageType avgType;
-//       LocalDate effectiveDate;
-//       if (today.getMonthValue() == 1 && today.getDayOfMonth() == 1) {
-//           avgType = AverageType.YEAR;
-//           effectiveDate = today.minusYears(1).withDayOfYear(1);
-//       } else if (today.getDayOfMonth() == 1) {
-//           avgType = AverageType.MONTH;
-//           effectiveDate = today.minusMonths(1).withDayOfMonth(1);
-//       } else {
-//           avgType = AverageType.DAY;
-//           effectiveDate = today;
-//       }
-         // =========================
-         // 2. Lấy snapshot trung bình
-         // =========================
-//         SaleAverageCalculateEntity saleAverageCalculate =
-//             salesAverageCalculateRepository.findLatestAverageByDate(productId, avgType.name(), effectiveDate)
-//                 .orElse(null);
-//         if (saleAverageCalculate == null) {
-//             log.warn("⚠️ No average snapshot found → default {}",defaultRequest);
-//             return defaultRequest;
-//         }
-//         int average;
-//         int average = saleAverageCalculate.getAverageQuantity();
+        log.info(" calculateAutoRequestQuantity(productId={})", productId);
+
          ZonedDateTime now = ZonedDateTime.now();
 
          // Order trong quá khứ (không truyền ngày)
@@ -172,7 +159,7 @@ public class FactoryRequestServiceImpl implements FactoryRequestService {
 
          // Không có order hôm nay → không đủ dữ liệu để auto request
          if (CollectionUtils.isEmpty(orderItemsToday)) {
-             log.warn("⚠️ Chưa có order nào với sản phẩm {} trong ngày hôm nay", productId);
+             log.warn(" Chưa có order nào với sản phẩm {} trong ngày hôm nay", productId);
              throw new RuntimeException(
                  "Chưa có order nào với sản phẩm " + productId + " trong ngày hôm nay đến thời điểm hiện tại"
             );

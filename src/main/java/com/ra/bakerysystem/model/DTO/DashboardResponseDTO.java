@@ -2,14 +2,12 @@ package com.ra.bakerysystem.model.DTO;
 
 import lombok.Builder;
 import lombok.Data;
-import tools.jackson.databind.PropertyNamingStrategies;
-import tools.jackson.databind.annotation.JsonNaming;
+
 
 import java.util.List;
 
 @Data
 @Builder
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class DashboardResponseDTO {
 
     private Integer dailySales;

@@ -1,15 +1,13 @@
 package com.ra.bakerysystem.model.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ra.bakerysystem.common.OrderType;
 import com.ra.bakerysystem.common.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
@@ -23,42 +21,44 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "order_id")
-    @JsonProperty("order_id")
     private Long id;
 
-    @Column(name = "order_time", updatable = false, nullable = false)
-    @JsonProperty(value = "order_time", access = JsonProperty.Access.READ_ONLY)
+    @Column(nullable = false, unique = true, length = 50)
+    private String code;
+
+    @Column(name = "order_time", nullable = false, updatable = false)
     private Instant orderTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "order_type")
-    @JsonProperty("order_type")
+    @Column(name = "order_type", nullable = false)
     private OrderType orderType;
 
-    @Column(name = "total_amount")
-    @JsonProperty("total_amount")
+    @Column(name = "total_amount", nullable = false)
     private Integer totalAmount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method")
-    @JsonProperty("payment_method")
+    @Column(name = "payment_method", nullable = false)
     private PaymentMethod paymentMethod;
 
-    @Column(name = "payment_received")
-    @JsonProperty("payment_received")
+    @Column(name = "payment_received", nullable = false)
     private Integer paymentReceived;
 
-    @Column(name = "change_amount")
-    @JsonProperty("change_amount")
+    @Column(name = "change_amount", nullable = false)
     private Integer changeAmount;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonProperty("items")
+    @OneToMany(
+            mappedBy = "order",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     private List<OrderItem> items;
 
-//    @PrePersist
-//    protected void onCreate() {
-//        // Luôn gán thời gian hiện tại của server khi lưu vào DB
-//        this.orderTime = Instant.now();
-//    }
+    @PrePersist
+    public void onCreate() {
+        orderTime = Instant.now();
+    }
+    public static String generateOrderCode() {
+        return "OD" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8).toUpperCase();
+    }
+
 }
